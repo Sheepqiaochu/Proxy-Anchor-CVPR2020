@@ -11,8 +11,9 @@ from torchvision.models import resnet50
 from torchvision.models import resnet101
 import torch.utils.model_zoo as model_zoo
 
+
 class Resnet18(nn.Module):
-    def __init__(self,embedding_size, pretrained=True, is_norm=True, bn_freeze = True):
+    def __init__(self, embedding_size, pretrained=True, is_norm=True, bn_freeze=True):
         super(Resnet18, self).__init__()
 
         self.model = resnet18(pretrained)
@@ -32,7 +33,7 @@ class Resnet18(nn.Module):
                     m.weight.requires_grad_(False)
                     m.bias.requires_grad_(False)
 
-    def l2_norm(self,input):
+    def l2_norm(self, input):
         input_size = input.size()
         buffer = torch.pow(input, 2)
 
@@ -59,21 +60,22 @@ class Resnet18(nn.Module):
         max_x = self.model.gmp(x)
 
         x = max_x + avg_x
-        
+
         x = x.view(x.size(0), -1)
         x = self.model.embedding(x)
 
         if self.is_norm:
             x = self.l2_norm(x)
-            
+
         return x
 
     def _initialize_weights(self):
         init.kaiming_normal_(self.model.embedding.weight, mode='fan_out')
         init.constant_(self.model.embedding.bias, 0)
 
+
 class Resnet34(nn.Module):
-    def __init__(self,embedding_size, pretrained=True, is_norm=True, bn_freeze = True):
+    def __init__(self, embedding_size, pretrained=True, is_norm=True, bn_freeze=True):
         super(Resnet34, self).__init__()
 
         self.model = resnet34(pretrained)
@@ -93,7 +95,7 @@ class Resnet34(nn.Module):
                     m.weight.requires_grad_(False)
                     m.bias.requires_grad_(False)
 
-    def l2_norm(self,input):
+    def l2_norm(self, input):
         input_size = input.size()
         buffer = torch.pow(input, 2)
 
@@ -120,7 +122,7 @@ class Resnet34(nn.Module):
         max_x = self.model.gmp(x)
 
         x = avg_x + max_x
-        
+
         x = x.view(x.size(0), -1)
         x = self.model.embedding(x)
 
@@ -133,8 +135,9 @@ class Resnet34(nn.Module):
         init.kaiming_normal_(self.model.embedding.weight, mode='fan_out')
         init.constant_(self.model.embedding.bias, 0)
 
+
 class Resnet50(nn.Module):
-    def __init__(self,embedding_size, pretrained=True, is_norm=True, bn_freeze = True):
+    def __init__(self, embedding_size, pretrained=True, is_norm=True, bn_freeze=True):
         super(Resnet50, self).__init__()
 
         self.model = resnet50(pretrained)
@@ -154,7 +157,7 @@ class Resnet50(nn.Module):
                     m.weight.requires_grad_(False)
                     m.bias.requires_grad_(False)
 
-    def l2_norm(self,input):
+    def l2_norm(self, input):
         input_size = input.size()
         buffer = torch.pow(input, 2)
 
@@ -183,18 +186,19 @@ class Resnet50(nn.Module):
         x = max_x + avg_x
         x = x.view(x.size(0), -1)
         x = self.model.embedding(x)
-        
+
         if self.is_norm:
             x = self.l2_norm(x)
-        
+
         return x
 
     def _initialize_weights(self):
         init.kaiming_normal_(self.model.embedding.weight, mode='fan_out')
         init.constant_(self.model.embedding.bias, 0)
 
+
 class Resnet101(nn.Module):
-    def __init__(self,embedding_size, pretrained=True, is_norm=True, bn_freeze = True):
+    def __init__(self, embedding_size, pretrained=True, is_norm=True, bn_freeze=True):
         super(Resnet101, self).__init__()
 
         self.model = resnet101(pretrained)
@@ -214,7 +218,7 @@ class Resnet101(nn.Module):
                     m.weight.requires_grad_(False)
                     m.bias.requires_grad_(False)
 
-    def l2_norm(self,input):
+    def l2_norm(self, input):
         input_size = input.size()
         buffer = torch.pow(input, 2)
 
@@ -243,10 +247,10 @@ class Resnet101(nn.Module):
         x = max_x + avg_x
         x = x.view(x.size(0), -1)
         x = self.model.embedding(x)
-        
+
         if self.is_norm:
             x = self.l2_norm(x)
-            
+
         return x
 
     def _initialize_weights(self):
