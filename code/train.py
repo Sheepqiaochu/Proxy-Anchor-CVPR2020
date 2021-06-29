@@ -300,7 +300,7 @@ for epoch in range(0, args.nb_epochs):
 
     pbar = tqdm(enumerate(dl_tr))
 
-    fgm = attack.FGM(model)     # attack the model
+    fgm = attack.FGM(model)  # attack the model
 
     for batch_idx, (x, y) in pbar:
         m = model(x.squeeze().cuda())
@@ -311,6 +311,7 @@ for epoch in range(0, args.nb_epochs):
 
         # model attack
         fgm.attack()
+        m = model(x.squeeze().cuda())
         loss_adv = criterion(m, y.squeeze().cuda())
         loss_adv.backward()
         fgm.restore()
@@ -332,7 +333,7 @@ for epoch in range(0, args.nb_epochs):
     wandb.log({'loss': losses_list[-1]}, step=epoch)
     scheduler.step()
 
-    if (epoch >= 0):
+    if epoch >= 0:
         with torch.no_grad():
             print("**Evaluating...**")
             if args.dataset == 'Inshop':
