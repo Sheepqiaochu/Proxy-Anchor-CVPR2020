@@ -6,7 +6,7 @@ class FGM:
         self.model = model
         self.backup = {}
 
-    def attack(self, epsilon=1., emb_name='classifier.weight'):
+    def attack(self, epsilon=1., emb_name='embedding.weight'):
         # emb_name: name of embedding
         for name, param in self.model.named_parameters():
             if param.requires_grad and emb_name in name:
@@ -16,7 +16,7 @@ class FGM:
                     r_at = epsilon * param.grad / norm
                     param.data.add_(r_at)
 
-    def restore(self, emb_name='classifier.weight'):
+    def restore(self, emb_name='embedding.weight'):
         # emb_name: name of embedding
         for name, param in self.model.named_parameters():
             if param.requires_grad and emb_name in name:
