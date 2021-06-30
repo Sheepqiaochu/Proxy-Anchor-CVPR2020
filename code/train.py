@@ -98,6 +98,9 @@ parser.add_argument('--l2-norm', default=1, type=int,
 parser.add_argument('--remark', default='',
                     help='Any reamrk'
                     )
+parser.add_argument('--attack', default=False, type=bool,
+                    help='whether attack the model'
+                    )
 
 args = parser.parse_args()
 
@@ -111,7 +114,8 @@ LOG_DIR = args.LOG_DIR + '/logs_{}/{}_{}_embedding{}_alpha{}_mrg{}_{}_lr{}_batch
                                                                                              args.alpha,
                                                                                              args.mrg, args.optimizer,
                                                                                              args.lr, args.sz_batch,
-                                                                                             args.remark)
+                                                                                             args.remark,
+                                                                                             args.attack)
 # Wandb Initialization
 wandb.init(project=args.dataset + '_attack', notes=LOG_DIR)
 wandb.config.update(args)
@@ -300,7 +304,8 @@ for epoch in range(0, args.nb_epochs):
 
     pbar = tqdm(enumerate(dl_tr))
 
-    fgm = attack.FGM(model)  # attack the model
+    if args.attack:
+        fgm = attack.FGM(model)  # attack the model
 
     for batch_idx, (x, y) in pbar:
         m = model(x.squeeze().cuda())
@@ -308,13 +313,13 @@ for epoch in range(0, args.nb_epochs):
 
         opt.zero_grad()
         loss.backward()
-
-        # model attack
-        fgm.attack()
-        m = model(x.squeeze().cuda())
-        loss_adv = criterion(m, y.squeeze().cuda())
-        loss_adv.backward()
-        fgm.restore()
+        if args.attack:
+            # model attack
+            fgm.attack()
+            m = model(x.squeeze().cuda())
+            loss_adv = criterion(m, y.squeeze().cuda())
+            loss_adv.backward()
+            fgm.restore()
 
         torch.nn.utils.clip_grad_value_(model.parameters(), 10)
         if args.loss == 'Proxy_Anchor':

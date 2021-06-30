@@ -5,14 +5,16 @@ import math
 import random
 from pytorch_metric_learning import miners, losses
 
+
 def binarize(T, nb_classes):
     T = T.cpu().numpy()
     import sklearn.preprocessing
     T = sklearn.preprocessing.label_binarize(
-        T, classes = range(0, nb_classes)
+        T, classes=range(0, nb_classes)
     )
     T = torch.FloatTensor(T).cuda()
     return T
+
 
 def l2_norm(input):
     input_size = input.size()
@@ -23,8 +25,9 @@ def l2_norm(input):
     output = _output.view(input_size)
     return output
 
+
 class Proxy_Anchor(torch.nn.Module):
-    def __init__(self, nb_classes, sz_embed, mrg = 0.1, alpha = 32):
+    def __init__(self, nb_classes, sz_embed, mrg=0.1, alpha=32):
         torch.nn.Module.__init__(self)
         # Proxy Anchor Initialization
         self.proxies = torch.nn.Parameter(torch.randn(nb_classes, sz_embed).cuda())
@@ -34,28 +37,30 @@ class Proxy_Anchor(torch.nn.Module):
         self.sz_embed = sz_embed
         self.mrg = mrg
         self.alpha = alpha
-        
+
     def forward(self, X, T):
         P = self.proxies
 
         cos = F.linear(l2_norm(X), l2_norm(P))  # Calcluate cosine similarity
-        P_one_hot = binarize(T = T, nb_classes = self.nb_classes)
+        P_one_hot = binarize(T=T, nb_classes=self.nb_classes)
         N_one_hot = 1 - P_one_hot
-    
+
         pos_exp = torch.exp(-self.alpha * (cos - self.mrg))
         neg_exp = torch.exp(self.alpha * (cos + self.mrg))
 
-        with_pos_proxies = torch.nonzero(P_one_hot.sum(dim = 0) != 0).squeeze(dim = 1)   # The set of positive proxies of data in the batch
-        num_valid_proxies = len(with_pos_proxies)   # The number of positive proxies
-        
-        P_sim_sum = torch.where(P_one_hot == 1, pos_exp, torch.zeros_like(pos_exp)).sum(dim=0) 
+        with_pos_proxies = torch.nonzero(P_one_hot.sum(dim=0) != 0).squeeze(
+            dim=1)  # The set of positive proxies of data in the batch
+        num_valid_proxies = len(with_pos_proxies)  # The number of positive proxies
+
+        P_sim_sum = torch.where(P_one_hot == 1, pos_exp, torch.zeros_like(pos_exp)).sum(dim=0)
         N_sim_sum = torch.where(N_one_hot == 1, neg_exp, torch.zeros_like(neg_exp)).sum(dim=0)
-        
+
         pos_term = torch.log(1 + P_sim_sum).sum() / num_valid_proxies
         neg_term = torch.log(1 + N_sim_sum).sum() / self.nb_classes
-        loss = pos_term + neg_term     
-        
+        loss = pos_term + neg_term
+
         return loss
+
 
 # We use PyTorch Metric Learning library for the following codes.
 # Please refer to "https://github.com/KevinMusgrave/pytorch-metric-learning" for details.
@@ -65,12 +70,14 @@ class Proxy_NCA(torch.nn.Module):
         self.nb_classes = nb_classes
         self.sz_embed = sz_embed
         self.scale = scale
-        self.loss_func = losses.ProxyNCALoss(num_classes = self.nb_classes, embedding_size = self.sz_embed, softmax_scale = self.scale).cuda()
+        self.loss_func = losses.ProxyNCALoss(num_classes=self.nb_classes, embedding_size=self.sz_embed,
+                                             softmax_scale=self.scale).cuda()
 
     def forward(self, embeddings, labels):
         loss = self.loss_func(embeddings, labels)
         return loss
-    
+
+
 class MultiSimilarityLoss(torch.nn.Module):
     def __init__(self, ):
         super(MultiSimilarityLoss, self).__init__()
@@ -78,43 +85,50 @@ class MultiSimilarityLoss(torch.nn.Module):
         self.epsilon = 0.1
         self.scale_pos = 2
         self.scale_neg = 50
-        
+
         self.miner = miners.MultiSimilarityMiner(epsilon=self.epsilon)
         self.loss_func = losses.MultiSimilarityLoss(self.scale_pos, self.scale_neg, self.thresh)
-        
+
     def forward(self, embeddings, labels):
         hard_pairs = self.miner(embeddings, labels)
         loss = self.loss_func(embeddings, labels, hard_pairs)
         return loss
-    
+
+
 class ContrastiveLoss(nn.Module):
     def __init__(self, margin=0.5, **kwargs):
         super(ContrastiveLoss, self).__init__()
         self.margin = margin
-        self.loss_func = losses.ContrastiveLoss(neg_margin=self.margin) 
-        
+        self.loss_func = losses.ContrastiveLoss(neg_margin=self.margin)
+
     def forward(self, embeddings, labels):
         loss = self.loss_func(embeddings, labels)
         return loss
-    
+
+
 class TripletLoss(nn.Module):
     def __init__(self, margin=0.1, **kwargs):
         super(TripletLoss, self).__init__()
         self.margin = margin
-        self.miner = miners.TripletMarginMiner(margin, type_of_triplets = 'semihard')
-        self.loss_func = losses.TripletMarginLoss(margin = self.margin)
-        
+        self.miner = miners.TripletMarginMiner(margin, type_of_triplets='semihard')
+        self.loss_func = losses.TripletMarginLoss(margin=self.margin)
+
     def forward(self, embeddings, labels):
         hard_pairs = self.miner(embeddings, labels)
         loss = self.loss_func(embeddings, labels, hard_pairs)
         return loss
-    
+
+
 class NPairLoss(nn.Module):
     def __init__(self, l2_reg=0):
         super(NPairLoss, self).__init__()
         self.l2_reg = l2_reg
-        self.loss_func = losses.NPairsLoss(l2_reg_weight=self.l2_reg, normalize_embeddings = False)
-        
+        self.loss_func = losses.NPairsLoss(l2_reg_weight=self.l2_reg, normalize_embeddings=False)
+
     def forward(self, embeddings, labels):
         loss = self.loss_func(embeddings, labels)
         return loss
+
+# class MetricImitation(nn.Module):
+#     def __init__(self, embedding_source, embedding_target):
+#         self.loss_func = losses.L1
